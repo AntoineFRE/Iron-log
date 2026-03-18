@@ -145,6 +145,7 @@
 
   @media (max-width: 600px) {
     .grid3 { grid-template-columns: 1fr 1fr; }
+    .grid3 > div:last-child { grid-column: 1 / -1; }
     .stats-grid { grid-template-columns: repeat(3,1fr); }
     #main { padding: 16px; }
     #header { padding: 0 12px; gap: 12px; }
@@ -176,11 +177,19 @@
   <!-- PAGE SÉANCE -->
   <div id="page-seance" class="page active">
     <div id="save-alert" style="display:none"></div>
+
+    <!-- TYPE DE SÉANCE -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button id="type-muscu-btn" class="btn btn-primary" style="flex:1;padding:12px;" onclick="setSessionType('muscu')">🏋️ Musculation</button>
+      <button id="type-run-btn" class="btn btn-ghost" style="flex:1;padding:12px;" onclick="setSessionType('running')">🏃 Course</button>
+    </div>
+
+    <!-- INFOS COMMUNES -->
     <div class="card">
       <div class="sec-title">Informations séance</div>
       <div class="grid3">
         <div><label>Date</label><input type="date" id="s-date"></div>
-        <div><label>Durée (min)</label><input type="number" id="s-duration" placeholder="60"></div>
+        <div><label>Durée (min)</label><input type="number" id="s-duration" placeholder="Auto" oninput="this.dataset.manual='true'; this.style.borderColor=''" title="Modifiable manuellement"></div>
         <div>
           <label>RPE — effort perçu</label>
           <div class="rpe-row">
@@ -191,28 +200,54 @@
       </div>
       <div><label>Notes libres</label><textarea id="s-notes" placeholder="Ressenti, contexte, remarques..."></textarea></div>
     </div>
-    <div id="exercises-list"></div>
-    <div id="add-ex-btn-wrap">
-      <button class="btn btn-ghost btn-full btn-dashed" onclick="openPicker()">+ Ajouter un exercice</button>
-    </div>
-    <div id="picker" class="card picker-card" style="display:none; margin-top:14px;">
-      <div class="picker-title">Ajouter un exercice</div>
-      <input type="text" id="picker-search" placeholder="Rechercher ou créer..." oninput="filterExercises()" autocomplete="off" style="margin-bottom:10px;">
-      <div class="grid2" style="margin-bottom:10px;">
-        <div><label>Repos avant cet exercice (s)</label><input type="number" id="picker-rest" placeholder="120"></div>
-        <div>
-          <label>Type (si nouvel exercice)</label>
-          <div class="type-toggle">
-            <button class="type-btn active" id="type-weighted" onclick="setNewType('weighted')">🏋️ Charge</button>
-            <button class="type-btn" id="type-bodyweight" onclick="setNewType('bodyweight')">🤸 Corps</button>
+
+    <!-- BLOC MUSCULATION -->
+    <div id="muscu-block">
+      <div id="exercises-list"></div>
+      <div id="add-ex-btn-wrap">
+        <button class="btn btn-ghost btn-full btn-dashed" onclick="openPicker()">+ Ajouter un exercice</button>
+      </div>
+      <div id="picker" class="card picker-card" style="display:none; margin-top:14px;">
+        <div class="picker-title">Ajouter un exercice</div>
+        <input type="text" id="picker-search" placeholder="Rechercher ou créer..." oninput="filterExercises()" autocomplete="off" style="margin-bottom:10px;">
+        <div class="grid2" style="margin-bottom:10px;">
+          <div><label>Repos avant cet exercice (s)</label><input type="number" id="picker-rest" placeholder="120"></div>
+          <div>
+            <label>Type (si nouvel exercice)</label>
+            <div class="type-toggle">
+              <button class="type-btn active" id="type-weighted" onclick="setNewType('weighted')">🏋️ Charge</button>
+              <button class="type-btn" id="type-bodyweight" onclick="setNewType('bodyweight')">🤸 Corps</button>
+            </div>
           </div>
         </div>
+        <div id="ex-list" class="ex-list"></div>
+        <div id="picker-actions" style="display:flex; gap:8px; margin-top:8px;"></div>
       </div>
-      <div id="ex-list" class="ex-list"></div>
-      <div id="picker-actions" style="display:flex; gap:8px; margin-top:8px;"></div>
+      <div style="height:14px"></div>
+      <button id="save-btn" class="btn btn-primary btn-full" onclick="saveSession()" style="display:none">✓ Enregistrer la séance</button>
     </div>
-    <div style="height:14px"></div>
-    <button id="save-btn" class="btn btn-primary btn-full" onclick="saveSession()" style="display:none">✓ Enregistrer la séance</button>
+
+    <!-- BLOC COURSE -->
+    <div id="run-block" style="display:none;">
+      <div class="card" style="border-left:3px solid #22C55E;">
+        <div class="sec-title" style="color:#22C55E;">Détails de la course</div>
+        <div class="grid2" style="margin-bottom:12px;">
+          <div>
+            <label>Distance (km)</label>
+            <input type="number" step="0.1" id="run-distance" placeholder="10.5">
+          </div>
+          <div>
+            <label>Durée (mm:ss ou min)</label>
+            <input type="text" id="run-time" placeholder="45:30" oninput="calcPace()">
+          </div>
+        </div>
+        <div id="pace-display" style="display:none; padding:10px 12px; background:#0A1A0A; border-radius:6px; border-left:2px solid #22C55E;">
+          <div style="font-size:10px;color:var(--muted);font-family:var(--display);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;">Allure moyenne</div>
+          <div id="pace-val" style="font-size:22px;font-family:var(--display);font-weight:900;color:#22C55E;"></div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="saveRunSession()" style="background:#22C55E;">✓ Enregistrer la course</button>
+    </div>
   </div>
 
   <!-- PAGE HISTORIQUE -->
@@ -222,7 +257,12 @@
 
   <!-- PAGE ANALYSE -->
   <div id="page-analyse" class="page">
-    <div id="analyse-content"></div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <button id="atab-muscu" class="btn btn-primary" style="flex:1;padding:10px;" onclick="showAnalyseTab('muscu')">🏋️ Musculation</button>
+      <button id="atab-run" class="btn btn-ghost" style="flex:1;padding:10px;" onclick="showAnalyseTab('run')">🏃 Course</button>
+    </div>
+    <div id="analyse-muscu"><div id="analyse-content"></div></div>
+    <div id="analyse-run" style="display:none;"></div>
   </div>
 
 </div>
@@ -311,6 +351,91 @@ async function deleteFromSheets(id) {
 document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
 loadFromSheets();
 
+// ─── TYPE DE SÉANCE ────────────────────────────────────────────────────────
+let currentSessionType = 'muscu';
+function setSessionType(type) {
+  currentSessionType = type;
+  document.getElementById('muscu-block').style.display = type === 'muscu' ? 'block' : 'none';
+  document.getElementById('run-block').style.display = type === 'running' ? 'block' : 'none';
+  document.getElementById('type-muscu-btn').className = 'btn btn-full ' + (type === 'muscu' ? 'btn-primary' : 'btn-ghost');
+  document.getElementById('type-run-btn').className = 'btn btn-full ' + (type === 'running' ? 'btn-primary' : 'btn-ghost');
+  document.getElementById('type-run-btn').style.background = type === 'running' ? '#22C55E' : '';
+  document.getElementById('type-muscu-btn').style.flex = '1';
+  document.getElementById('type-run-btn').style.flex = '1';
+  if (type === 'running') {
+    document.getElementById('s-duration').dataset.manual = 'true';
+  }
+}
+
+// ─── ALLURE COURSE ─────────────────────────────────────────────────────────
+function parseRunTime(val) {
+  // Accepte mm:ss ou minutes décimales
+  if (!val) return 0;
+  if (val.includes(':')) {
+    const parts = val.split(':');
+    return parseInt(parts[0]) * 60 + (parseInt(parts[1]) || 0);
+  }
+  return parseFloat(val) * 60;
+}
+
+function calcPace() {
+  const dist = parseFloat(document.getElementById('run-distance')?.value) || 0;
+  const timeStr = document.getElementById('run-time')?.value || '';
+  const totalSec = parseRunTime(timeStr);
+  const display = document.getElementById('pace-display');
+  const paceEl = document.getElementById('pace-val');
+  if (dist > 0 && totalSec > 0) {
+    const paceSec = totalSec / dist;
+    const paceMin = Math.floor(paceSec / 60);
+    const paceSecs = Math.round(paceSec % 60);
+    paceEl.textContent = `${paceMin}'${String(paceSecs).padStart(2,'0')}" / km`;
+    display.style.display = 'block';
+    // Met à jour la durée
+    const durField = document.getElementById('s-duration');
+    durField.value = Math.round(totalSec / 60);
+  } else {
+    display.style.display = 'none';
+  }
+}
+
+// ─── SAUVEGARDER COURSE ────────────────────────────────────────────────────
+async function saveRunSession() {
+  const dist = parseFloat(document.getElementById('run-distance').value);
+  const timeStr = document.getElementById('run-time').value;
+  const totalSec = parseRunTime(timeStr);
+  if (!dist || !totalSec) { showAlert('Remplis la distance et la durée !', 'error'); return; }
+  const paceSec = totalSec / dist;
+  const paceMin = Math.floor(paceSec / 60);
+  const paceSecs = Math.round(paceSec % 60);
+  const session = {
+    id: Date.now().toString(),
+    sessionType: 'running',
+    date: document.getElementById('s-date').value,
+    duration: Math.round(totalSec / 60),
+    rpe: parseInt(document.getElementById('rpe-slider').value),
+    notes: document.getElementById('s-notes').value,
+    distance: dist,
+    runTime: timeStr,
+    pace: `${paceMin}:${String(paceSecs).padStart(2,'0')}`,
+    exercises: []
+  };
+  const ok = await saveToSheets(session);
+  if (ok) {
+    sessions.unshift(session);
+    document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('s-duration').value = '';
+    document.getElementById('rpe-slider').value = 7;
+    document.getElementById('rpe-val').textContent = '7';
+    document.getElementById('s-notes').value = '';
+    document.getElementById('run-distance').value = '';
+    document.getElementById('run-time').value = '';
+    document.getElementById('pace-display').style.display = 'none';
+    showAlert('✓ Course enregistrée et synchronisée !', 'success');
+  } else {
+    showAlert('✕ Erreur de connexion', 'error');
+  }
+}
+
 // ─── ONGLETS ───────────────────────────────────────────────────────────────
 function showTab(t, btn) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -323,10 +448,33 @@ function showTab(t, btn) {
 
 function fmtDate(d) {
   if (!d) return '';
-  return new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' });
+  let date;
+  if (typeof d === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      date = new Date(d + 'T00:00:00');
+    } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(d)) {
+      const parts = d.split('/');
+      date = new Date(parts[2] + '-' + parts[1] + '-' + parts[0] + 'T00:00:00');
+    } else {
+      date = new Date(d);
+    }
+  } else {
+    date = new Date(d);
+  }
+  if (!date || isNaN(date.getTime())) return String(d);
+  return date.toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' });
 }
 
 // ─── EXERCICES ─────────────────────────────────────────────────────────────
+function getLastPerf(name) {
+  // Cherche la dernière séance (hors séance en cours) contenant cet exercice
+  for (const s of sessions) {
+    const ex = s.exercises.find(e => e.name === name);
+    if (ex) return { date: fmtDate(s.date), sets: ex.sets, type: ex.type };
+  }
+  return null;
+}
+
 function renderExercises() {
   const el = document.getElementById('exercises-list');
   el.innerHTML = '';
@@ -344,6 +492,22 @@ function renderExercises() {
           <button class="remove-set" onclick="removeSet(${i},${j})">−</button>
         </div>`;
     });
+
+    // Dernière performance
+    const lastPerf = getLastPerf(ex.name);
+    let lastPerfHTML = '';
+    if (lastPerf) {
+      const summary = lastPerf.sets.map((s,j) => {
+        if (lastPerf.type === 'weighted') return `S${j+1}: ${s.reps}×${s.weight}kg`;
+        return `S${j+1}: ${s.reps} reps`;
+      }).join('  ·  ');
+      lastPerfHTML = `
+        <div style="margin-top:10px; padding:8px 12px; background:#1A0A00; border-radius:6px; border-left:2px solid var(--accent);">
+          <div style="font-size:10px;color:var(--muted);font-family:var(--display);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;">Dernière fois · ${lastPerf.date}</div>
+          <div style="font-size:12px;color:var(--text);font-family:var(--mono);">${summary}</div>
+        </div>`;
+    }
+
     el.innerHTML += `
       <div class="card accent-left">
         <div class="ex-header">
@@ -356,7 +520,8 @@ function renderExercises() {
           </div>
           <button class="btn-icon" onclick="removeEx(${i})">✕</button>
         </div>
-        <div class="series-grid ${isW?'weighted':'bodyweight'}" style="margin-bottom:6px;">
+        ${lastPerfHTML}
+        <div class="series-grid ${isW?'weighted':'bodyweight'}" style="margin-bottom:6px; margin-top:12px;">
           ${headerCols.map(h=>`<div class="col-header">${h}</div>`).join('')}
         </div>
         ${setsHTML}
@@ -366,10 +531,39 @@ function renderExercises() {
   document.getElementById('save-btn').style.display = sessionExs.length > 0 ? 'block' : 'none';
 }
 
-function addSet(i) { sessionExs[i].sets.push({reps:'',weight:'',restAfter:''}); renderExercises(); }
-function removeSet(i,j) { if(sessionExs[i].sets.length>1){sessionExs[i].sets.splice(j,1);renderExercises();} }
-function updateSet(i,j,f,v) { sessionExs[i].sets[j][f]=v; }
-function removeEx(i) { sessionExs.splice(i,1); renderExercises(); }
+function addSet(i) {
+  const sets = sessionExs[i].sets;
+  const prev = sets[sets.length - 1];
+  sets.push({ reps: prev.reps, weight: prev.weight, restAfter: prev.restAfter });
+  renderExercises();
+  calcDuration();
+}
+function removeSet(i,j) { if(sessionExs[i].sets.length>1){sessionExs[i].sets.splice(j,1);renderExercises();calcDuration();} }
+function updateSet(i,j,f,v) { sessionExs[i].sets[j][f]=v; calcDuration(); }
+function removeEx(i) { sessionExs.splice(i,1); renderExercises(); calcDuration(); }
+
+function calcDuration() {
+  if (sessionExs.length === 0) return;
+  let total = 0;
+  sessionExs.forEach(ex => {
+    // Temps de repos avant l'exercice
+    total += ex.restBefore || 0;
+    ex.sets.forEach(set => {
+      const reps = parseInt(set.reps) || 0;
+      const rest = parseInt(set.restAfter) || 0;
+      // ~3s par rep + temps de repos après la série
+      total += reps * 3 + rest;
+    });
+  });
+  const minutes = Math.max(1, Math.round(total / 60));
+  const field = document.getElementById('s-duration');
+  // Ne remplace que si l'utilisateur n'a pas saisi manuellement
+  if (!field.dataset.manual || field.dataset.manual === 'false') {
+    field.value = minutes;
+    field.style.borderColor = 'var(--accent)';
+    field.title = 'Durée estimée automatiquement — modifiable';
+  }
+}
 
 // ─── PICKER ────────────────────────────────────────────────────────────────
 function openPicker() {
@@ -414,6 +608,7 @@ function pickExById(id) {
   sessionExs.push({ uid: Date.now().toString(), name: ex.name, type: ex.type, restBefore: rest, sets: [{reps:'',weight:'',restAfter:''}] });
   closePicker();
   renderExercises();
+  calcDuration();
 }
 function addCustomEx() {
   const name = document.getElementById('picker-search').value.trim();
@@ -449,7 +644,10 @@ async function saveSession() {
     sessions.unshift(session);
     sessionExs = [];
     document.getElementById('s-date').value = new Date().toISOString().split('T')[0];
-    document.getElementById('s-duration').value = '';
+    const durField = document.getElementById('s-duration');
+    durField.value = '';
+    durField.dataset.manual = 'false';
+    durField.style.borderColor = '';
     document.getElementById('rpe-slider').value = 7;
     document.getElementById('rpe-val').textContent = '7';
     document.getElementById('s-notes').value = '';
@@ -476,54 +674,93 @@ function renderHistory() {
   if (!sessions.length) { el.innerHTML = '<div class="empty">Aucune séance enregistrée</div>'; return; }
   el.innerHTML = `<div class="sec-title">${sessions.length} séance${sessions.length>1?'s':''}</div>`;
   sessions.forEach(s => {
-    const exBadges = s.exercises.slice(0,3).map(e=>`<span class="badge">${e.name}</span>`).join('');
-    const more = s.exercises.length>3 ? `<span style="font-size:11px;color:var(--muted)">+${s.exercises.length-3}</span>` : '';
-    let detailHTML = s.notes ? `<div class="session-note">${s.notes}</div>` : '';
-    s.exercises.forEach(ex => {
-      const isW = ex.type==='weighted';
-      const rows = ex.sets.map((set,j) => `
-        <tr>
-          <td class="muted">S${j+1}</td>
-          <td>${set.reps} reps</td>
-          ${isW?`<td class="accent">${set.weight?set.weight+' kg':'—'}</td>`:''}
-          <td class="muted">${set.restAfter?set.restAfter+'s':'—'}</td>
-        </tr>`).join('');
-      detailHTML += `
-        <div class="ex-detail">
-          <div class="ex-detail-title">
-            ${ex.name}
-            <span class="ex-detail-sub">${isW?'avec charge':'poids de corps'}</span>
-            ${ex.restBefore>0?`<span class="ex-detail-sub">⏱ repos avant : ${ex.restBefore}s</span>`:''}
-          </div>
-          <table><thead><tr><th>#</th><th>Reps</th>${isW?'<th>Charge</th>':''}<th>Repos après</th></tr></thead>
-          <tbody>${rows}</tbody></table>
-        </div>`;
-    });
-    detailHTML += `
-      <div id="del-${s.id}" style="display:none" class="delete-row">
-        <span>Supprimer cette séance ?</span>
-        <button class="btn btn-danger btn-sm" onclick="deleteSession('${s.id}')">Confirmer</button>
-        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('del-${s.id}').style.display='none'">Annuler</button>
-      </div>
-      <button class="btn-delete-ghost" onclick="document.getElementById('del-${s.id}').style.display='flex'">Supprimer</button>`;
-    el.innerHTML += `
-      <div class="card">
-        <div class="session-header" onclick="toggleSession('${s.id}')">
-          <div>
-            <div class="session-date">${fmtDate(s.date)}</div>
-            <div class="session-meta">
-              ${s.duration>0?`<span>⏱ ${s.duration} min</span>`:''}
-              <span>RPE ${s.rpe}/10</span>
-              <span>${s.exercises.length} exercice${s.exercises.length>1?'s':''}</span>
+    const isRun = s.sessionType === 'running';
+
+    if (isRun) {
+      // Carte course
+      el.innerHTML += `
+        <div class="card" style="border-left:3px solid #22C55E;">
+          <div class="session-header" onclick="toggleSession('${s.id}')">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:16px;">🏃</span>
+                <div class="session-date">${fmtDate(s.date)}</div>
+              </div>
+              <div class="session-meta">
+                <span style="color:#22C55E;font-weight:600;">${s.distance} km</span>
+                ${s.duration>0?`<span>⏱ ${s.duration} min</span>`:''}
+                ${s.pace?`<span>📍 ${s.pace}/km</span>`:''}
+                <span>RPE ${s.rpe}/10</span>
+              </div>
             </div>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div class="session-badges">${exBadges}${more}</div>
             <span id="chev-${s.id}" style="color:var(--muted)">▼</span>
           </div>
+          <div class="session-detail" id="detail-${s.id}">
+            ${s.notes?`<div class="session-note">${s.notes}</div>`:''}
+            <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:12px;">
+              <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:var(--display);">Distance</div><div style="font-size:22px;font-family:var(--display);font-weight:900;color:#22C55E;">${s.distance} km</div></div>
+              <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:var(--display);">Durée</div><div style="font-size:22px;font-family:var(--display);font-weight:900;">${s.runTime || s.duration+' min'}</div></div>
+              ${s.pace?`<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:var(--display);">Allure</div><div style="font-size:22px;font-family:var(--display);font-weight:900;color:#22C55E;">${s.pace}/km</div></div>`:''}
+            </div>
+            <div id="del-${s.id}" style="display:none" class="delete-row">
+              <span>Supprimer cette séance ?</span>
+              <button class="btn btn-danger btn-sm" onclick="deleteSession('${s.id}')">Confirmer</button>
+              <button class="btn btn-ghost btn-sm" onclick="document.getElementById('del-${s.id}').style.display='none'">Annuler</button>
+            </div>
+            <button class="btn-delete-ghost" onclick="document.getElementById('del-${s.id}').style.display='flex'">Supprimer</button>
+          </div>
+        </div>`;
+    } else {
+      // Carte musculation (existante)
+      const exBadges = s.exercises.slice(0,3).map(e=>`<span class="badge">${e.name}</span>`).join('');
+      const more = s.exercises.length>3 ? `<span style="font-size:11px;color:var(--muted)">+${s.exercises.length-3}</span>` : '';
+      let detailHTML = s.notes ? `<div class="session-note">${s.notes}</div>` : '';
+      s.exercises.forEach(ex => {
+        const isW = ex.type==='weighted';
+        const rows = ex.sets.map((set,j) => `
+          <tr>
+            <td class="muted">S${j+1}</td>
+            <td>${set.reps} reps</td>
+            ${isW?`<td class="accent">${set.weight?set.weight+' kg':'—'}</td>`:''}
+            <td class="muted">${set.restAfter?set.restAfter+'s':'—'}</td>
+          </tr>`).join('');
+        detailHTML += `
+          <div class="ex-detail">
+            <div class="ex-detail-title">
+              ${ex.name}
+              <span class="ex-detail-sub">${isW?'avec charge':'poids de corps'}</span>
+              ${ex.restBefore>0?`<span class="ex-detail-sub">⏱ repos avant : ${ex.restBefore}s</span>`:''}
+            </div>
+            <table><thead><tr><th>#</th><th>Reps</th>${isW?'<th>Charge</th>':''}<th>Repos après</th></tr></thead>
+            <tbody>${rows}</tbody></table>
+          </div>`;
+      });
+      detailHTML += `
+        <div id="del-${s.id}" style="display:none" class="delete-row">
+          <span>Supprimer cette séance ?</span>
+          <button class="btn btn-danger btn-sm" onclick="deleteSession('${s.id}')">Confirmer</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('del-${s.id}').style.display='none'">Annuler</button>
         </div>
-        <div class="session-detail" id="detail-${s.id}">${detailHTML}</div>
-      </div>`;
+        <button class="btn-delete-ghost" onclick="document.getElementById('del-${s.id}').style.display='flex'">Supprimer</button>`;
+      el.innerHTML += `
+        <div class="card">
+          <div class="session-header" onclick="toggleSession('${s.id}')">
+            <div>
+              <div class="session-date">${fmtDate(s.date)}</div>
+              <div class="session-meta">
+                ${s.duration>0?`<span>⏱ ${s.duration} min</span>`:''}
+                <span>RPE ${s.rpe}/10</span>
+                <span>${s.exercises.length} exercice${s.exercises.length>1?'s':''}</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="session-badges">${exBadges}${more}</div>
+              <span id="chev-${s.id}" style="color:var(--muted)">▼</span>
+            </div>
+          </div>
+          <div class="session-detail" id="detail-${s.id}">${detailHTML}</div>
+        </div>`;
+    }
   });
 }
 
@@ -539,21 +776,142 @@ async function deleteSession(id) {
 }
 
 // ─── ANALYSE ───────────────────────────────────────────────────────────────
+function filterSessionsByPeriod(period) {
+  const now = new Date();
+  return sessions.filter(s => {
+    if (!s.date) return false;
+    let d;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s.date)) d = new Date(s.date + 'T00:00:00');
+    else d = new Date(s.date);
+    if (isNaN(d)) return false;
+    if (period === 'week') {
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1));
+      startOfWeek.setHours(0,0,0,0);
+      return d >= startOfWeek;
+    } else if (period === 'month') {
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    } else if (period === 'year') {
+      return d.getFullYear() === now.getFullYear();
+    }
+    return true;
+  });
+}
+
+function updateStats() {
+  const period = document.getElementById('stats-period')?.value || 'month';
+  const filtered = filterSessionsByPeriod(period).filter(s => s.sessionType !== 'running');
+  const totalSeries = filtered.reduce((sum,s)=>sum+s.exercises.reduce((a,e)=>a+e.sets.length,0),0);
+  const exSet = new Set(filtered.flatMap(s=>s.exercises.map(e=>e.name)));
+  document.getElementById('stat-seances').textContent = filtered.length;
+  document.getElementById('stat-exercices').textContent = exSet.size;
+  document.getElementById('stat-series').textContent = totalSeries;
+}
+
+function showAnalyseTab(t) {
+  document.getElementById('analyse-muscu').style.display = t === 'muscu' ? 'block' : 'none';
+  document.getElementById('analyse-run').style.display = t === 'run' ? 'block' : 'none';
+  document.getElementById('atab-muscu').className = 'btn ' + (t==='muscu'?'btn-primary':'btn-ghost');
+  document.getElementById('atab-run').className = 'btn ' + (t==='run'?'btn-primary':'btn-ghost');
+  document.getElementById('atab-run').style.background = t==='run' ? '#22C55E' : '';
+  if (t === 'run') renderRunAnalyse();
+}
+
+function renderRunAnalyse() {
+  const runSessions = sessions.filter(s => s.sessionType === 'running').sort((a,b) => a.date.localeCompare(b.date));
+  const el = document.getElementById('analyse-run');
+  if (!runSessions.length) { el.innerHTML = '<div class="no-data">Aucune course enregistrée</div>'; return; }
+
+  const totalKm = runSessions.reduce((sum,s) => sum + (parseFloat(s.distance)||0), 0);
+  const totalMin = runSessions.reduce((sum,s) => sum + (parseInt(s.duration)||0), 0);
+  const bestDist = Math.max(...runSessions.map(s => parseFloat(s.distance)||0));
+
+  const chartData = runSessions.map(s => ({
+    label: fmtDate(s.date),
+    distance: parseFloat(s.distance)||0,
+    duration: parseInt(s.duration)||0,
+    pace: (() => {
+      const totalSec = parseRunTime(s.runTime) || (parseInt(s.duration)||0)*60;
+      const dist = parseFloat(s.distance)||1;
+      return Math.round(totalSec / dist);
+    })()
+  }));
+
+  el.innerHTML = `
+    <div class="stats-grid" style="margin-bottom:20px;">
+      <div class="card stat-card" style="margin-bottom:0"><div class="stat-val" style="color:#22C55E;">${runSessions.length}</div><div class="stat-lbl">Sorties</div></div>
+      <div class="card stat-card" style="margin-bottom:0"><div class="stat-val" style="color:#22C55E;">${totalKm.toFixed(1)}</div><div class="stat-lbl">Km totaux</div></div>
+      <div class="card stat-card" style="margin-bottom:0"><div class="stat-val" style="color:#22C55E;">${bestDist}</div><div class="stat-lbl">Meilleure dist.</div></div>
+    </div>
+
+    <div class="card">
+      <div class="chart-title" style="margin-top:0;">Distance par sortie (km)</div>
+      <div class="chart-wrap"><canvas id="c-run-dist"></canvas></div>
+      <div class="chart-title">Allure (sec/km) — plus bas = plus rapide</div>
+      <div class="chart-wrap"><canvas id="c-run-pace"></canvas></div>
+
+      <div class="chart-title" style="margin-top:24px;">Dernières sorties</div>
+      <table class="perf-table" style="margin-top:8px;">
+        <thead><tr><th>Date</th><th>Distance</th><th>Durée</th><th>Allure</th><th>RPE</th></tr></thead>
+        <tbody>
+          ${[...runSessions].reverse().slice(0,10).map(s => {
+            const totalSec = parseRunTime(s.runTime) || (parseInt(s.duration)||0)*60;
+            const dist = parseFloat(s.distance)||1;
+            const ps = Math.round(totalSec/dist);
+            const pm = Math.floor(ps/60), pss = ps%60;
+            return `<tr>
+              <td>${fmtDate(s.date)}</td>
+              <td style="color:#22C55E;font-weight:600;">${s.distance} km</td>
+              <td>${s.runTime || s.duration+' min'}</td>
+              <td>${pm}'${String(pss).padStart(2,'0')}"/km</td>
+              <td class="muted">${s.rpe}/10</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  // Dessine les graphiques
+  setTimeout(() => {
+    const ttStyle = { backgroundColor:'#141414', borderColor:'#252525', borderWidth:1, titleColor:'#F0EBE3', bodyColor:'#F0EBE3' };
+    const baseOpts = { responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{...ttStyle} }, scales:{ x:{ grid:{color:'#252525'}, ticks:{color:'#666',font:{size:10}} }, y:{ grid:{color:'#252525'}, ticks:{color:'#666',font:{size:10}} } } };
+    const labels = chartData.map(d=>d.label);
+    if (document.getElementById('c-run-dist')) {
+      charts['c-run-dist'] = new Chart(document.getElementById('c-run-dist'), { type:'bar', options:{...baseOpts}, data:{ labels, datasets:[{ data:chartData.map(d=>d.distance), backgroundColor:'#22C55E44', borderColor:'#22C55E', borderWidth:2, borderRadius:4 }] } });
+    }
+    if (document.getElementById('c-run-pace')) {
+      charts['c-run-pace'] = new Chart(document.getElementById('c-run-pace'), { type:'line', options:{...baseOpts}, data:{ labels, datasets:[{ data:chartData.map(d=>d.pace), borderColor:'#3B82F6', backgroundColor:'#3B82F622', pointBackgroundColor:'#3B82F6', pointRadius:4, tension:0.3, fill:true }] } });
+    }
+  }, 50);
+}
+
 function renderAnalyse() {
   Object.values(charts).forEach(c => c&&c.destroy&&c.destroy());
   charts = {};
   const el = document.getElementById('analyse-content');
+  const muscuSessions = sessions.filter(s => s.sessionType !== 'running');
   const exCounts = {};
-  sessions.forEach(s => s.exercises.forEach(e => { exCounts[e.name]=(exCounts[e.name]||0)+1; }));
+  muscuSessions.forEach(s => s.exercises.forEach(e => { exCounts[e.name]=(exCounts[e.name]||0)+1; }));
   const top = Object.entries(exCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const totalSeries = sessions.reduce((sum,s)=>sum+s.exercises.reduce((a,e)=>a+e.sets.length,0),0);
-  const allNames = [...new Set(sessions.flatMap(s=>s.exercises.map(e=>e.name)))].sort();
+  const allNames = [...new Set(muscuSessions.flatMap(s=>s.exercises.map(e=>e.name)))].sort();
+
+  const initFiltered = filterSessionsByPeriod('month').filter(s => s.sessionType !== 'running');
+  const initSeries = initFiltered.reduce((sum,s)=>sum+s.exercises.reduce((a,e)=>a+e.sets.length,0),0);
+  const initExSet = new Set(initFiltered.flatMap(s=>s.exercises.map(e=>e.name)));
 
   el.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <div style="font-family:var(--display);font-size:12px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;">Statistiques</div>
+      <select id="stats-period" onchange="updateStats()" style="background:var(--input);border:1px solid var(--border);border-radius:6px;padding:6px 12px;color:var(--text);font-family:var(--display);font-size:13px;font-weight:600;letter-spacing:1px;outline:none;cursor:pointer;">
+        <option value="week">Cette semaine</option>
+        <option value="month" selected>Ce mois</option>
+        <option value="year">Cette année</option>
+      </select>
+    </div>
     <div class="stats-grid">
-      <div class="card stat-card"><div class="stat-val">${sessions.length}</div><div class="stat-lbl">Séances totales</div></div>
-      <div class="card stat-card"><div class="stat-val">${Object.keys(exCounts).length}</div><div class="stat-lbl">Exercices différents</div></div>
-      <div class="card stat-card"><div class="stat-val">${totalSeries}</div><div class="stat-lbl">Séries totales</div></div>
+      <div class="card stat-card"><div class="stat-val" id="stat-seances">${initFiltered.length}</div><div class="stat-lbl">Séances</div></div>
+      <div class="card stat-card"><div class="stat-val" id="stat-exercices">${initExSet.size}</div><div class="stat-lbl">Exercices</div></div>
+      <div class="card stat-card"><div class="stat-val" id="stat-series">${initSeries}</div><div class="stat-lbl">Séries</div></div>
     </div>
     ${top.length>0?`
     <div class="card">
@@ -566,6 +924,53 @@ function renderAnalyse() {
           <span class="top-ex-count">${count}×</span>
         </div>`).join('')}
     </div>`:''}
+    ${(() => {
+      // Calcul des PRs par exercice
+      const prs = {};
+      sessions.forEach(s => {
+        s.exercises.forEach(ex => {
+          if (!prs[ex.name]) prs[ex.name] = { maxWeight: 0, maxWeightDate: '', maxReps: 0, maxRepsDate: '', best1RM: 0, type: ex.type };
+          ex.sets.forEach(set => {
+            const w = parseFloat(set.weight) || 0;
+            const r = parseInt(set.reps) || 0;
+            if (w > prs[ex.name].maxWeight) { prs[ex.name].maxWeight = w; prs[ex.name].maxWeightDate = s.date; }
+            if (r > prs[ex.name].maxReps) { prs[ex.name].maxReps = r; prs[ex.name].maxRepsDate = s.date; }
+            // Formule Epley : 1RM = w × (1 + r/30)
+            if (w > 0 && r > 0) {
+              const orm = Math.round(w * (1 + r / 30) * 10) / 10;
+              if (orm > prs[ex.name].best1RM) prs[ex.name].best1RM = orm;
+            }
+          });
+        });
+      });
+      const prList = Object.entries(prs).filter(([,v]) => v.maxWeight > 0 || v.maxReps > 0);
+      if (!prList.length) return '';
+      return `<div class="card">
+        <div class="sec-title">🏆 Records personnels</div>
+        ${prList.map(([name, pr]) => `
+          <div style="padding:10px 0; border-bottom:1px solid var(--border);">
+            <div style="font-family:var(--display);font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">${name}</div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;">
+              ${pr.type === 'weighted' ? `
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:var(--display);">Charge max</span>
+                  <span style="font-size:18px;font-family:var(--display);font-weight:900;color:var(--accent);">${pr.maxWeight} kg</span>
+                  <span style="font-size:11px;color:var(--muted);">${fmtDate(pr.maxWeightDate)}</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:var(--display);">1RM estimé</span>
+                  <span style="font-size:18px;font-family:var(--display);font-weight:900;color:#3B82F6;">${pr.best1RM} kg</span>
+                  <span style="font-size:11px;color:var(--muted);">Formule Epley</span>
+                </div>` : ''}
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:var(--display);">Reps max (1 série)</span>
+                <span style="font-size:18px;font-family:var(--display);font-weight:900;color:#22C55E;">${pr.maxReps}</span>
+                <span style="font-size:11px;color:var(--muted);">${fmtDate(pr.maxRepsDate)}</span>
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+    })()}
     <div class="card">
       <div class="sec-title">Progression par exercice</div>
       <div style="margin-bottom:16px;">
