@@ -101,13 +101,13 @@ input[type=range]{flex:1;accent-color:var(--ac)}
 .tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .tag{font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);background:var(--sf2);padding:3px 10px;border-radius:20px;border:1px solid var(--bd)}
 .tag-g{background:var(--acl);color:var(--acd);border-color:#D4A820}
-.sr,.sh{display:grid;gap:6px;align-items:center}
-.sw{grid-template-columns:32px 1fr 1fr 1fr 28px}
-.sb{grid-template-columns:32px 1fr 1fr 28px}
-.sn{font-family:var(--serif);font-size:14px;font-weight:700;color:var(--ac)}
-.ch{font-family:var(--mono);font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px}
-.si{padding:8px 10px!important;text-align:center}
-.rms{background:none;border:none;color:var(--bd);cursor:pointer;font-size:18px;transition:color .15s}
+.sr,.sh{display:grid;gap:5px;align-items:center}
+.sw{grid-template-columns:28px 1fr 1fr 1fr 26px}
+.sb{grid-template-columns:28px 1fr 1fr 26px}
+.sn{font-family:var(--serif);font-size:16px;font-weight:700;color:var(--ac);text-align:center}
+.ch{font-family:var(--mono);font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;text-align:center}
+.si{padding:13px 4px!important;text-align:center;font-size:16px!important;font-weight:600!important;min-height:48px}
+.rms{background:none;border:none;color:var(--bd);cursor:pointer;font-size:22px;transition:color .15s;text-align:center;padding:0}
 .rms:active{color:var(--err)}
 
 /* PICKER */
@@ -384,7 +384,12 @@ async function load(){
 }
 async function save2(s){syncUI('load','Sauvegarde...');try{await fetch(URL2+'?action=save',{method:'POST',body:JSON.stringify(s)});localStorage.setItem('il_s',JSON.stringify(sessions));syncUI('ok','Synchronisé');return true;}catch(e){syncUI('err','Erreur sync');return false;}}
 async function del2(id){try{await fetch(URL2+'?action=delete&id='+id);syncUI('ok','Synchronisé');return true;}catch(e){syncUI('err','Erreur sync');return false;}}
-async function saveMens2(e){try{await fetch(URL2+'?action=saveMensuration',{method:'POST',body:JSON.stringify(e)});localStorage.setItem('il_m',JSON.stringify(mens));return true;}catch(e){return false;}}
+async function saveMens2(e){
+  try{
+    await fetch(URL2+'?action=saveMensuration',{method:'POST',body:JSON.stringify(e)});
+    return true;
+  }catch(err){return false;}
+}
 async function delMens2(id){try{await fetch(URL2+'?action=deleteMensuration&id='+id);return true;}catch(e){return false;}}
 
 // INIT
@@ -524,7 +529,10 @@ function rAna(){
   const now=new Date();
   const inm=ms.filter(s=>{const d=new Date(s.date+'T00:00:00');return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
   const ims=inm.reduce((a,s)=>a+s.exercises.reduce((b,e)=>b+e.sets.length,0),0);
-  const prs={};ms.forEach(s=>s.exercises?.forEach(ex=>{if(!prs[ex.name])prs[ex.name]={mw:0,mwd:'',mr:0,mrd:'',b1:0,t:ex.type};ex.sets.forEach(st=>{const w=parseFloat(st.weight)||0,r=parseInt(st.reps)||0;if(w>prs[ex.name].mw){prs[ex.name].mw=w;prs[ex.name].mwd=s.date;}if(r>prs[ex.name].mr){prs[ex.name].mr=r;prs[ex.name].mrd=s.date;}if(w>0&&r>0){const o=Math.round(w*(1+r/30)*10)/10;if(o>prs[ex.name].b1)prs[ex.name].b1=o;}});}));
+  const prs={};ms.forEach(s=>s.exercises?.forEach(ex=>{
+    if(!prs[ex.name])prs[ex.name]={mw:0,mwd:'',mr:0,mrd:'',b1:0,t:ex.type};
+    ex.sets.forEach(st=>{const w=parseFloat(st.weight)||0,r=parseInt(st.reps)||0;if(w>prs[ex.name].mw){prs[ex.name].mw=w;prs[ex.name].mwd=s.date;}if(r>prs[ex.name].mr){prs[ex.name].mr=r;prs[ex.name].mrd=s.date;}if(w>0&&r>0){const o=Math.round(w*(1+r/30)*10)/10;if(o>prs[ex.name].b1)prs[ex.name].b1=o;}});
+  }));
   const apn=Object.keys(prs);const ss=JSON.parse(localStorage.getItem('il_prs')||'null');const psel=ss||apn;const prl=Object.entries(prs).filter(([n])=>psel.includes(n));
   el.innerHTML=`<div class="stg"><div class="card stc"><div class="stv">${inm.length}</div><div class="stl">Séances</div></div><div class="card stc"><div class="stv">${new Set(inm.flatMap(s=>s.exercises?.map(e=>e.name)||[])).size}</div><div class="stl">Exercices</div></div><div class="card stc"><div class="stv">${ims}</div><div class="stl">Séries</div></div></div>
   ${top.length?`<div class="card"><div class="sl">Plus pratiqués</div>${top.map(([n,c],i)=>`<div class="tr2"><span class="trk">${i+1}</span><span style="flex:1;font-size:13px;font-weight:500">${n}</span><div class="trb" style="width:${(c/top[0][1])*100}px"></div><span style="font-family:var(--mono);font-size:11px;color:var(--tx3);min-width:28px;text-align:right">${c}×</span></div>`).join('')}</div>`:''}
@@ -537,7 +545,14 @@ function rCharts(){
   const sel=document.getElementById('esel')?.value,area=document.getElementById('cha');
   if(!sel||!area)return;const ms=mu();
   const isW=ms.some(s=>s.exercises?.some(e=>e.name===sel&&(e.type==='w'||e.type==='weighted')));
-  const data=ms.filter(s=>s.exercises?.some(e=>e.name===sel)).sort((a,b)=>a.date.localeCompare(b.date)).map(s=>{const ex=s.exercises.find(e=>e.name===sel);const ws=ex.sets.map(st=>parseFloat(st.weight)||0).filter(w=>w>0);const rs=ex.sets.map(st=>parseInt(st.reps)||0);return{lbl:fmt(s.date),mw:ws.length?Math.max(...ws):0,vol:ex.sets.reduce((a,st)=>a+(isW?(parseFloat(st.weight)||0)*(parseInt(st.reps)||0):(parseInt(st.reps)||0)),0),reps:rs.reduce((a,b)=>a+b,0),sets:ex.sets.length};});
+  const data=ms.filter(s=>s.exercises?.some(e=>e.name===sel)).sort((a,b)=>a.date.localeCompare(b.date)).map(s=>{
+    // Tous les blocs du même exercice dans cette séance (pas seulement le premier)
+    const allEx=s.exercises.filter(e=>e.name===sel);
+    const allSets=allEx.flatMap(e=>e.sets);
+    const ws=allSets.map(st=>parseFloat(st.weight)||0).filter(w=>w>0);
+    const rs=allSets.map(st=>parseInt(st.reps)||0);
+    const vol=allSets.reduce((a,st)=>a+(isW?(parseFloat(st.weight)||0)*(parseInt(st.reps)||0):(parseInt(st.reps)||0)),0);
+    return{lbl:fmt(s.date),mw:ws.length?Math.max(...ws):0,vol,reps:rs.reduce((a,b)=>a+b,0),sets:allSets.length};});
   if(!data.length){area.innerHTML='<div class="nd">Pas encore de données</div>';return;}
   const lbs=data.map(d=>d.lbl);
   const opts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#FDFAF4',borderColor:'#D8D0C0',borderWidth:1,titleColor:'#1A1510',bodyColor:'#4A4035',titleFont:{family:'DM Mono'},bodyFont:{family:'DM Mono',size:12}}},scales:{x:{grid:{color:'#EDE8DF'},ticks:{color:'#8A7D6E',font:{family:'DM Mono',size:10}}},y:{grid:{color:'#EDE8DF'},ticks:{color:'#8A7D6E',font:{family:'DM Mono',size:10}}}}};
@@ -551,20 +566,67 @@ function rCharts(){
   if(isW)mk('c-r',data.map(d=>d.reps),'#1B4F8A');
 }
 
+// OBJECTIFS — variables calendrier
+let ocy=new Date().getFullYear(),ocm=new Date().getMonth(),ocsel=null;
+
 // OBJECTIFS
 function rObj(){
   const el=document.getElementById('obj');const ms=mu();const now=new Date();const ts=td();
   const dow=now.getDay()===0?7:now.getDay();const ws=new Date(now);ws.setDate(now.getDate()-dow+1);ws.setHours(0,0,0,0);const wss=ws.toISOString().split('T')[0];
-  const DN=['L','M','M','J','V','S','D'];
-  const wc=Array.from({length:7},(_,i)=>{const d=new Date(ws);d.setDate(ws.getDate()+i);const ds=d.toISOString().split('T')[0];return`<div class="wd ${ms.some(s=>s.date===ds)?'tr':''} ${ds===ts?'td':''}">${DN[i]}</div>`;}).join('');
   const wk=ms.filter(s=>s.date>=wss&&s.date<=ts).length;
   const mk2=ms.filter(s=>{const d=new Date(s.date+'T00:00:00');return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).length;
   const allN=[...new Set([...exs.map(e=>e.name),...ms.flatMap(s=>s.exercises?.map(e=>e.name)||[])])].sort();
-  el.innerHTML=`<div class="wc"><div class="sl">Cette semaine</div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="text-align:center"><div style="font-family:var(--serif);font-size:32px;font-weight:900;color:var(--ac);line-height:1">${wk}</div><div style="font-family:var(--mono);font-size:10px;color:var(--tx3);margin-top:3px">séance${wk>1?'s':''}</div></div><div style="text-align:center"><div style="font-family:var(--serif);font-size:32px;font-weight:900;color:var(--bl);line-height:1">${mk2}</div><div style="font-family:var(--mono);font-size:10px;color:var(--tx3);margin-top:3px">ce mois</div></div><div style="text-align:center"><div style="font-family:var(--serif);font-size:32px;font-weight:900;color:var(--ok);line-height:1">${ms.length}</div><div style="font-family:var(--mono);font-size:10px;color:var(--tx3);margin-top:3px">total</div></div></div><div class="wg">${wc}</div></div>
+
+  // Calendrier mensuel
+  const MN=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const DN=['L','M','M','J','V','S','D'];
+  const bd={};ms.forEach(s=>{bd[s.date]=s;});
+  const first=new Date(ocy,ocm,1),last=new Date(ocy,ocm+1,0);
+  let ddow=first.getDay()===0?6:first.getDay()-1;
+  let cells='';
+  for(let i=0;i<ddow;i++){const d=new Date(ocy,ocm,-ddow+i+1);cells+=`<div class="cd oth"><div class="cdd">${d.getDate()}</div></div>`;}
+  for(let d=1;d<=last.getDate();d++){
+    const ds=`${ocy}-${String(ocm+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const h=!!bd[ds],it=ds===ts,is=ds===ocsel;
+    cells+=`<div class="cd ${h?'has':''} ${it?'tod':''} ${is?'sel':''}" onclick="${h?`oSelD('${ds}')`:''}" ><div class="cdd">${d}</div>${h?'<div class="cde">🏋️</div>':''}</div>`;
+  }
+
+  // Détail séance sélectionnée
+  let det='';
+  if(ocsel&&bd[ocsel]){
+    const s=bd[ocsel];
+    const exh=s.exercises.map(ex=>{const w=ex.type==='w'||ex.type==='weighted';return`<div style="margin-bottom:12px"><div style="font-family:var(--serif);font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${ex.name}<span style="font-family:var(--mono);font-size:10px;color:var(--tx3);font-weight:400;text-transform:none;letter-spacing:0;margin-left:6px">${w?'charge':'corps'}</span></div><table style="width:100%;border-collapse:collapse;font-size:12px;font-family:var(--mono)"><thead><tr><th style="text-align:left;padding:3px 8px;color:var(--tx3);font-size:10px;border-bottom:1px solid var(--bdl)">#</th><th style="text-align:left;padding:3px 8px;color:var(--tx3);font-size:10px;border-bottom:1px solid var(--bdl)">Reps</th>${w?'<th style="text-align:left;padding:3px 8px;color:var(--tx3);font-size:10px;border-bottom:1px solid var(--bdl)">Charge</th>':''}<th style="text-align:left;padding:3px 8px;color:var(--tx3);font-size:10px;border-bottom:1px solid var(--bdl)">Repos</th></tr></thead><tbody>${ex.sets.map((st,j)=>`<tr><td style="padding:5px 8px;color:var(--tx3)">S${j+1}</td><td style="padding:5px 8px">${st.reps} reps</td>${w?`<td style="padding:5px 8px;color:var(--acd);font-weight:500">${st.weight?st.weight+' kg':'—'}</td>`:''}<td style="padding:5px 8px;color:var(--tx3)">${st.rest?st.rest+'s':'—'}</td></tr>`).join('')}</tbody></table></div>`;}).join('');
+    det=`<div class="cdet"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div><div style="font-family:var(--serif);font-size:16px;font-weight:700">${fmt(s.date)}</div><div style="font-family:var(--mono);font-size:11px;color:var(--tx3);margin-top:3px">${s.duration>0?`⏱ ${s.duration} min  ·  `:''}RPE ${s.rpe}/10  ·  ${s.exercises.length} exercice${s.exercises.length>1?'s':''}</div></div><button onclick="ocsel=null;rObj()" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:18px;padding:4px">✕</button></div>${s.notes?`<div style="background:var(--bg);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--tx3);font-style:italic;margin-bottom:12px;border-left:2px solid var(--bd)">${s.notes}</div>`:''}${exh}</div>`;
+  }
+
+  el.innerHTML=`
+  <!-- Stats semaine -->
+  <div class="wc"><div class="sl">Résumé</div><div style="display:flex;justify-content:space-between;align-items:center"><div style="text-align:center"><div style="font-family:var(--serif);font-size:32px;font-weight:900;color:var(--ac);line-height:1">${wk}</div><div style="font-family:var(--mono);font-size:10px;color:var(--tx3);margin-top:3px">cette semaine</div></div><div style="text-align:center"><div style="font-family:var(--serif);font-size:32px;font-weight:900;color:var(--bl);line-height:1">${mk2}</div><div style="font-family:var(--mono);font-size:10px;color:var(--tx3);margin-top:3px">ce mois</div></div><div style="text-align:center"><div style="font-family:var(--serif);font-size:32px;font-weight:900;color:var(--ok);line-height:1">${ms.length}</div><div style="font-family:var(--mono);font-size:10px;color:var(--tx3);margin-top:3px">total</div></div></div></div>
+
+  <!-- Calendrier mensuel -->
+  <div class="card">
+    <div class="cnr">
+      <button class="cbt" onclick="oPrev()">‹</button>
+      <div class="cmo">${MN[ocm]} ${ocy}</div>
+      <button class="cbt" onclick="oNext()">›</button>
+    </div>
+    <div class="cgr">
+      ${DN.map(d=>`<div class="cdn">${d}</div>`).join('')}
+      ${cells}
+    </div>
+  </div>
+  ${det}
+
+  <!-- Badges -->
   <div class="card"><div class="sl">Badges</div><div class="bdgr">${BDG.map(b=>{const u=b.check(ms);return`<div class="bdi ${u?'on':'off'}"><div class="bdie">${b.icon}</div><div class="bdin">${b.name}</div></div>`;}).join('')}</div></div>
+
+  <!-- Objectifs -->
   <div class="card"><div class="sl">Mes objectifs</div><div style="background:var(--bg);border-radius:10px;padding:14px;border:1px solid var(--bd);margin-bottom:12px"><div style="font-family:var(--mono);font-size:10px;color:var(--tx3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Nouvel objectif</div><div style="margin-bottom:10px"><label>Exercice</label><select id="gex" style="background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;color:var(--tx);font-family:var(--mono);font-size:13px;width:100%;outline:none;-webkit-appearance:none"><option value="">— Choisir —</option>${allN.map(n=>`<option value="${n}">${n}</option>`).join('')}</select></div><div class="g2" style="margin-bottom:10px"><div><label>Métrique</label><select id="gmet" style="background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;color:var(--tx);font-family:var(--mono);font-size:13px;width:100%;outline:none;-webkit-appearance:none"><option value="charge">Charge max (kg)</option><option value="reps">Reps max</option><option value="1rm">1RM estimé (kg)</option></select></div><div><label>Cible</label><input type="number" id="gtar" placeholder="100" inputmode="decimal" style="background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;color:var(--tx);font-family:var(--mono);font-size:13px;width:100%;outline:none"></div></div><button class="btn btn-g btn-f" onclick="saveGoal()">+ Ajouter l'objectif</button></div>
   ${goals.length===0?'<div class="nd">Aucun objectif défini</div>':goals.map(g=>{const cur=gCur(g);const pct=Math.min(100,Math.round(cur/g.target*100));const ml=g.metric==='charge'?'kg':g.metric==='reps'?'reps':'kg 1RM';return`<div class="gc"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px"><div><div class="gn">${g.name}</div><div class="gi">Objectif : ${g.target} ${ml}</div></div><button onclick="delGoal('${g.id}')" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:14px;padding:2px 6px">✕</button></div><div class="gb"><div class="gf ${g.achieved||pct>=100?'gfd':''}" style="width:${pct}%"></div></div><div style="display:flex;justify-content:space-between"><div class="gp">${cur} / ${g.target} ${ml}</div><div class="gp ${g.achieved||pct>=100?'gpok':''}">${g.achieved||pct>=100?'✓ Atteint !':pct+'%'}</div></div></div>`;}).join('')}</div>`;
 }
+function oSelD(d){ocsel=ocsel===d?null:d;rObj();}
+function oPrev(){ocm--;if(ocm<0){ocm=11;ocy--;}ocsel=null;rObj();}
+function oNext(){ocm++;if(ocm>11){ocm=0;ocy++;}ocsel=null;rObj();}
 function gCur(g){const sets=mu().flatMap(s=>s.exercises?.filter(e=>e.name===g.name).flatMap(e=>e.sets)||[]);if(g.metric==='charge')return Math.max(0,...sets.map(s=>parseFloat(s.weight)||0));if(g.metric==='reps')return Math.max(0,...sets.map(s=>parseInt(s.reps)||0));if(g.metric==='1rm')return Math.max(0,...sets.map(s=>{const w=parseFloat(s.weight)||0,r=parseInt(s.reps)||0;return w>0&&r>0?Math.round(w*(1+r/30)*10)/10:0;}));return 0;}
 function saveGoal(){const n=document.getElementById('gex').value,m=document.getElementById('gmet').value,t=parseFloat(document.getElementById('gtar').value);if(!n||!t){alert('Remplis tous les champs !');return;}goals.unshift({id:Date.now().toString(),name:n,metric:m,target:t,achieved:false});localStorage.setItem('il_goals',JSON.stringify(goals));rObj();}
 function delGoal(id){goals=goals.filter(g=>g.id!==id);localStorage.setItem('il_goals',JSON.stringify(goals));rObj();}
@@ -576,9 +638,15 @@ async function saveMens(){
   const e={id:Date.now().toString(),date};let hv=false;
   MF.forEach(f=>{const v=parseFloat(document.getElementById('m-'+f.id)?.value);if(!isNaN(v)&&v>0){e[f.id]=v;hv=true;}});
   if(!hv){showA('ca2','Remplis au moins une mesure','err');return;}
-  const ok=await saveMens2(e);
-  if(ok){mens.unshift(e);MF.forEach(f=>{const el=document.getElementById('m-'+f.id);if(el)el.value='';});document.getElementById('md').value=td();showA('ca2','✓ Mesures enregistrées !','ok');rCorps();}
-  else showA('ca2','Erreur de connexion','err');
+  // Ajoute en mémoire d'abord
+  mens.unshift(e);
+  localStorage.setItem('il_m',JSON.stringify(mens));
+  MF.forEach(f=>{const el=document.getElementById('m-'+f.id);if(el)el.value='';});
+  document.getElementById('md').value=td();
+  showA('ca2','✓ Mesures enregistrées !','ok');
+  rCorps();
+  // Sync Google Sheets en arrière-plan
+  saveMens2(e).then(ok=>{if(!ok)showA('ca2','⚠ Sauvegardé localement, erreur sync','err');});
 }
 async function delMens(id){await delMens2(id);mens=mens.filter(m=>m.id!==id);localStorage.setItem('il_m',JSON.stringify(mens));rCorps();}
 function rCorps(){
