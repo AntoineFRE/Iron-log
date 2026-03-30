@@ -415,11 +415,9 @@ async function saveMens2(entry){
   try{
     const r=await fetch(URL2+'?action=saveMensuration',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
       body:JSON.stringify(entry)
     });
     const txt=await r.text();
-    // Google Apps Script renvoie parfois du HTML en cas d'erreur
     if(txt.includes('<html')||txt.includes('Error'))return false;
     return true;
   }catch(err){
@@ -429,11 +427,7 @@ async function saveMens2(entry){
 }
 async function delMens2(id){
   try{
-    await fetch(URL2+'?action=deleteMensuration&id='+id,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({id})
-    });
+    await fetch(URL2+'?action=deleteMensuration&id='+id);
     return true;
   }catch(e){return false;}
 }
