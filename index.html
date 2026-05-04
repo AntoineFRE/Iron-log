@@ -597,10 +597,36 @@ function filterPk(){
 function pickE(id){const e=exs.find(x=>x.id===id);if(!e)return;const r=parseInt(document.getElementById('pkr').value)||0;sexs.push({uid:Date.now().toString(),name:e.name,type:e.type,rb:r,sets:[{reps:'',weight:'',rest:''}]});closePk();rExs();calcDur();}
 function addCust(){const name=document.getElementById('pks').value.trim();if(!name)return;let e=exs.find(x=>x.name.toLowerCase()===name.toLowerCase());if(!e){e={id:'c_'+Date.now(),name,type:nt};exs.push(e);localStorage.setItem('il_ex',JSON.stringify(exs));}pickE(e.id);}
 
+// CONFIRMATION POPUP
+function showConfirm(){
+  return new Promise(resolve=>{
+    const m=document.createElement('div');
+    m.style.cssText='position:fixed;inset:0;background:rgba(26,21,16,.55);z-index:900;display:flex;align-items:center;justify-content:center;padding:24px';
+    m.innerHTML=`<div style="background:#FDFAF4;border-radius:18px;padding:28px 24px;max-width:300px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(26,21,16,.25)">
+      <div style="font-size:40px;margin-bottom:12px">💪</div>
+      <div style="font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:900;color:#1A1510;margin-bottom:8px">Enregistrer la séance ?</div>
+      <div style="font-family:'DM Mono',monospace;font-size:12px;color:#8A7D6E;margin-bottom:24px;letter-spacing:.5px">Es-tu sûr de vouloir sauvegarder cette séance ?</div>
+      <div style="display:flex;gap:10px">
+        <button id="cno" style="flex:1;padding:13px;border-radius:8px;border:1px solid #D8D0C0;background:transparent;color:#4A4035;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer">Non</button>
+        <button id="cyes" style="flex:1;padding:13px;border-radius:8px;border:none;background:#B8860B;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer">Oui ✓</button>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+    document.getElementById('cyes').onclick=()=>{m.remove();resolve(true);};
+    document.getElementById('cno').onclick=()=>{m.remove();resolve(false);};
+    m.addEventListener('click',e=>{if(e.target===m){m.remove();resolve(false);}});
+  });
+}
+
 // SAVE SESSION
 async function saveSession(){
   const cex=sexs.map(ex=>({...ex,sets:ex.sets.filter(s=>s.reps!=='')})).filter(ex=>ex.sets.length>0);
   if(!cex.length){showA('sa','Ajoute au moins une série !','err');return;}
+
+  // Confirmation
+  const ok2=await showConfirm();
+  if(!ok2)return;
+
   const s={id:Date.now().toString(),date:document.getElementById('sd').value,duration:parseInt(document.getElementById('sdur').value)||0,rpe:parseInt(document.getElementById('rpe').value),notes:document.getElementById('sn').value,exercises:cex,sessionType:'muscu'};
   document.getElementById('sbtn').disabled=true;document.getElementById('sbtn').textContent='Enregistrement...';
   const reps=cex.reduce((a,ex)=>a+ex.sets.reduce((b,st)=>b+(parseInt(st.reps)||0),0),0);
